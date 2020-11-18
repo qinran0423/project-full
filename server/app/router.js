@@ -1,12 +1,11 @@
-'use strict';
+
 
 /**
  * @param {Egg.Application} app - egg application
  */
 module.exports = app => {
-  const { router, controller } = app;
-  router.get('/', controller.home.index);
-
-  // 验证码
-  router.get('/captcha', controller.util.captcha);
-};
+  const { router, controller } = app
+  router.get('/', controller.home.index)
+  
+  router.get('/captcha', controller.utils.index)
+}
