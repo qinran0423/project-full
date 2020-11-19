@@ -32,6 +32,8 @@
     }
   }
   .captcha-contianer{
+    width: 340px;
+    position: relative;
     .captcha{
       position: absolute;
       right: -100px;
