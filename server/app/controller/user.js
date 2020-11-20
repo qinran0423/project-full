@@ -50,10 +50,13 @@ class UserController extends BaseController {
 
     const {email, passwd, captcha, nickname} = ctx.request.body
     if(captcha.toUpperCase() !== ctx.session.captcha.toUpperCase()) {
-      this.error('验证码错误')
+      return this.error('验证码错误')
+    }
+    if(emailcode !== ctx.session.emailcode) {
+      return this.error('邮箱验证码错误')
     }
     if(await this.checkEmail(email)) {
-      this.error('邮箱重复')
+      return this.error('邮箱重复')
     } else {
       const ret = await ctx.model.User.create({
         email,
@@ -76,7 +79,10 @@ class UserController extends BaseController {
   }
 
   async info() {
-
+    const {ctx} = this
+    // 还不知道是哪个邮件，应该从token里读取
+    // 有的接口需要从token读取数据，有的不需要
+    // const {email} = ctx
   }
 }
 
