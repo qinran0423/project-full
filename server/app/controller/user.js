@@ -82,7 +82,9 @@ class UserController extends BaseController {
     const {ctx} = this
     // 还不知道是哪个邮件，应该从token里读取
     // 有的接口需要从token读取数据，有的不需要
-    // const {email} = ctx
+    const {email} = ctx.state
+    const user = await this.checkEmail(email)
+    this.success(user)
   }
 }
 
