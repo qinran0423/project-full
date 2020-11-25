@@ -2,7 +2,6 @@
 const jwt = require('jsonwebtoken')
 module.exports = ({app}) => {
   return async function verify(ctx, next) {
-
     if(!ctx.request.header.authorization) {
       ctx.body = {
         code: -666,

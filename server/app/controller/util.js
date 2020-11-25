@@ -1,6 +1,6 @@
 const svgCaptcha = require('svg-captcha')
 const BaseController = require('./base')
-
+const fse = require('fs-extra');
 class UtilController extends BaseController {
   async captcha() {
     const captcha = svgCaptcha.create({
@@ -16,6 +16,21 @@ class UtilController extends BaseController {
     console.log('captcha: ', captcha.text);
     this.ctx.body = captcha.data
     
+  }
+
+  async uploadfile() {
+    const {ctx} = this
+    const file = ctx.request.files[0]
+    const {name} = ctx.request.body
+    console.log(file);
+
+    await fse.move(file.filepath, this.config.UPLOAD_DIR + '/' + file.filename)
+
+    
+
+    this.success({
+      url: `/public/${file.filename}`
+    })
   }
 
   async sendcode() {
