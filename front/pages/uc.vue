@@ -22,6 +22,7 @@
   }
 </style>
 <script>
+import sparkMD5 from 'spark-md5'
 const CHUNKS_SIZE = 0.5*1024*1024
   export default {
     async mounted() {
@@ -34,6 +35,7 @@ const CHUNKS_SIZE = 0.5*1024*1024
         file:null,
         uploadProgress: 0,
         hashProgress: 0,
+        chunks: []
       }
     },
     methods: {
@@ -111,16 +113,15 @@ const CHUNKS_SIZE = 0.5*1024*1024
         while(cur < this.file.size) {
           chunks.push({
             index: cur,
-            file: this.file.slice(cur, cur*size)
+            file: this.file.slice(cur, cur + size)
           })
           cur += size
         }
-
         return chunks
       },
       async calculateHashWorker() {
         return new Promise(resolve => {
-          this.worker = new worker('/hash.js')
+          this.worker = new Worker('/hash.js')
           this.worker.postMessage({chunks: this.chunks})
           this.worker.onmessage = e => {
             const {progress, hash} = e.data
@@ -132,7 +133,39 @@ const CHUNKS_SIZE = 0.5*1024*1024
         })
       },
       async calculateHashIdle() {
-        
+        const chunks = this.chunks
+        return new Promise(resolve => {
+          const spark = new sparkMD5.ArrayBuffer()
+          let count = 0
+          const appendToSpark = async file => {
+            return new Promise(resolve => {
+              const reader = new FileReader()
+              reader.readAsArrayBuffer(file)
+              reader.onload = e => {
+                spark.append(e.target.result) 
+                resolve()
+              }
+            })
+          }
+          const workLoop = async deadline =>{
+            while(count < chunks.length && deadline.timeRemaining() > 1) {
+              // 空闲时间，且有任务
+              await appendToSpark(chunks[count].file)
+              count ++
+              if(count < chunks.length) {
+                this.hashProgress = Number(
+                ((100*count)/chunks.length).toFixed(2)
+                )
+              } else{
+                this.hashProgress = 100
+                resolve(spark.end())
+              }
+            }
+
+            window.requestIdleCallback(workLoop)
+          }
+          window.requestIdleCallback(workLoop)
+        })
       },
       async uploadFile() {
         // if(!await this.isImage(this.file)) {
@@ -142,7 +175,9 @@ const CHUNKS_SIZE = 0.5*1024*1024
 
         this.chunks = this.createFileChunk(this.file)
         const hash = await this.calculateHashWorker()
+        const hash1 = await this.calculateHashIdle()
         console.log('文件hash', hash)
+        console.log('文件hash1', hash1);
         return
         const form = new FormData()
         form.append('name', 'file')
