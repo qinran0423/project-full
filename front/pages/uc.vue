@@ -27,6 +27,8 @@
             'success': chunk.progress == 100,
             'error': chunk.progress < 0
           }"
+
+          :style="{height: chunk.progress + '%'}"
         >
           <i class="el-icon-loading"  style="color: #f56c6c" v-if="chunk.progress < 100 && chunk.progress> 0"></i>
         </div>
@@ -283,7 +285,8 @@ const CHUNKS_SIZE = 0.5*1024*1024
             hash,
             name,
             index,
-            chunk: chunk.file
+            chunk: chunk.file,
+            progress: 0
           }
         })
 
@@ -296,11 +299,11 @@ const CHUNKS_SIZE = 0.5*1024*1024
           // 转换promise
           const form = new FormData()
           form.append('chunk', chunk.chunk)
-          form.append('chunk', chunk.hash)
-          form.append('chunk', chunk.name)
+          form.append('hash', chunk.hash)
+          form.append('name', chunk.name)
           // form.append('chunk', chunk.index)
-          return {form}
-        }).map((form, index) => this.$http.post('/uploadfile', {
+          return form
+        }).map((form, index) => this.$http.post('/uploadfile',form, {
           onUploadProgress: progress => {
             // 不是整体的进度条，而是每个区块都有自己的进度条，整体的进度条需要计算
             this.chunks[index].progress = Number(((progress.loaded/progress.total) * 100).toFixed(2))
@@ -308,6 +311,7 @@ const CHUNKS_SIZE = 0.5*1024*1024
         }))
         // @todo 并发量控制
         await Promise.all(requests)
+        await this.mergeRequest()
         // const form = new FormData()
         // form.append('name', 'file')
         // form.append('file', this.file)
@@ -317,6 +321,13 @@ const CHUNKS_SIZE = 0.5*1024*1024
         //   }
         // })
         // console.log(ret)
+      },
+      mergeRequest() {
+        this.$http.post('/mergefile', {
+          ext: this.file.name.split('.').pop(),
+          size: CHUNKS_SIZE,
+          hash: this.hash
+        })
       }
     },
   }
